@@ -161,6 +161,72 @@ async function main() {
   } else {
     console.log('Bills already exist, skipping...');
   }
+
+  // 试用中的租户（14天后到期）
+  const trialTenant = await prisma.tenant.upsert({
+    where: { code: 'DEMO002' },
+    update: {},
+    create: {
+      name: '试用租户',
+      code: 'DEMO002',
+      contactName: '李四',
+      contactEmail: 'lisi@demo.com',
+      status: 'trial',
+      planId: 2,
+      trialEndsAt: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
+    },
+  });
+  console.log('Created trial tenant:', trialTenant.name);
+
+  // 试用已到期的租户（启动检查时会被自动停用，标记 trial_expired）
+  const expiredTrialTenant = await prisma.tenant.upsert({
+    where: { code: 'DEMO003' },
+    update: {},
+    create: {
+      name: '试用到期租户',
+      code: 'DEMO003',
+      contactName: '王五',
+      contactEmail: 'wangwu@demo.com',
+      status: 'trial',
+      planId: 1,
+      trialEndsAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+    },
+  });
+  console.log('Created expired trial tenant:', expiredTrialTenant.name);
+
+  // 长期欠费租户：账单已逾期40天（启动检查时会被自动停用，标记 arrears）
+  const arrearsTenant = await prisma.tenant.upsert({
+    where: { code: 'DEMO004' },
+    update: {},
+    create: {
+      name: '欠费租户',
+      code: 'DEMO004',
+      contactName: '赵六',
+      contactEmail: 'zhaoliu@demo.com',
+      status: 'active',
+      planId: 2,
+    },
+  });
+
+  const arrearsBillCount = await prisma.bill.count({
+    where: { tenantId: arrearsTenant.id },
+  });
+  if (arrearsBillCount === 0) {
+    await prisma.bill.create({
+      data: {
+        tenantId: arrearsTenant.id,
+        amount: 299,
+        billDate: new Date(now.getTime() - 70 * 24 * 60 * 60 * 1000),
+        dueDate: new Date(now.getTime() - 40 * 24 * 60 * 60 * 1000),
+        status: 'pending',
+        items: {
+          planFee: { name: '专业版月费', amount: 299, quantity: 1 },
+        },
+        remark: '历史欠费账单（逾期40天）',
+      },
+    });
+    console.log('Created long overdue bill for tenant:', arrearsTenant.name);
+  }
 }
 
 main()
