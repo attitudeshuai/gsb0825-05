@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { LifecycleService } from '../lifecycle/lifecycle.service';
 import { CreateBillDto, UpdateBillDto } from './dto/bill.dto';
 import { PaginationDto, PaginationResultDto } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class BillService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private lifecycleService: LifecycleService,
+  ) {}
 
   async create(createBillDto: CreateBillDto) {
     const tenant = await this.prisma.tenant.findUnique({
@@ -19,6 +23,7 @@ export class BillService {
     return this.prisma.bill.create({
       data: {
         ...createBillDto,
+        type: createBillDto.type || 'manual',
         billDate: new Date(createBillDto.billDate),
         dueDate: new Date(createBillDto.dueDate),
         items: createBillDto.items as any,
@@ -122,11 +127,19 @@ export class BillService {
       updateData.paidAt = new Date();
     }
 
-    return this.prisma.bill.update({
+    const updatedBill = await this.prisma.bill.update({
       where: { id },
       data: updateData,
       include: { tenant: true },
     });
+
+    let tenantReactivated = false;
+    if (status === 'paid') {
+      tenantReactivated =
+        await this.lifecycleService.reactivateIfArrearsCleared(bill.tenantId);
+    }
+
+    return { ...updatedBill, tenantReactivated };
   }
 
   async getStats() {
@@ -134,10 +147,7 @@ export class BillService {
     const pending = await this.prisma.bill.count({ where: { status: 'pending' } });
     const paid = await this.prisma.bill.count({ where: { status: 'paid' } });
     const overdue = await this.prisma.bill.count({
-      where: {
-        status: 'pending',
-        dueDate: { lt: new Date() },
-      },
+      where: { status: 'overdue' },
     });
 
     const totalAmount = await this.prisma.bill.aggregate({
@@ -149,8 +159,8 @@ export class BillService {
       _sum: { amount: true },
     });
 
-    const pendingAmount = await this.prisma.bill.aggregate({
-      where: { status: 'pending' },
+    const unpaidAmount = await this.prisma.bill.aggregate({
+      where: { status: { in: ['pending', 'overdue'] } },
       _sum: { amount: true },
     });
 
@@ -159,7 +169,7 @@ export class BillService {
       amount: {
         total: totalAmount._sum.amount?.toNumber() || 0,
         paid: paidAmount._sum.amount?.toNumber() || 0,
-        pending: pendingAmount._sum.amount?.toNumber() || 0,
+        pending: unpaidAmount._sum.amount?.toNumber() || 0,
       },
     };
   }

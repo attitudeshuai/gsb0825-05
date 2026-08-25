@@ -39,13 +39,19 @@ export interface Tenant {
   contactPhone: string;
   address: string;
   status: string;
+  suspendReason?: string | null;
   planId: number;
   plan: Plan;
-  trialEndsAt?: string;
+  trialEndsAt?: string | null;
+  storageUsed?: number;
   createdAt: string;
   updatedAt: string;
   tenantUsers?: TenantUser[];
   bills?: Bill[];
+  planChanges?: PlanChangeRecord[];
+  _count?: {
+    tenantUsers?: number;
+  };
 }
 
 export interface TenantUser {
@@ -56,12 +62,42 @@ export interface TenantUser {
   role: string;
   status: string;
   createdAt: string;
+  updatedAt?: string;
+}
+
+export interface TenantUserListResult {
+  data: TenantUser[];
+  total: number;
+  activeCount: number;
+}
+
+export interface PlanChangeRecord {
+  id: number;
+  tenantId: number;
+  fromPlanId: number;
+  toPlanId: number;
+  fromPlanName: string;
+  toPlanName: string;
+  fromPrice: number;
+  toPrice: number;
+  proratedAmount: number;
+  effectiveAt: string;
+  billId?: number | null;
+  remark?: string;
+  createdAt: string;
+}
+
+export interface ChangePlanResult {
+  tenant: Tenant;
+  record: PlanChangeRecord;
+  billId: number | null;
 }
 
 export interface Bill {
   id: number;
   tenantId: number;
   tenant: Tenant;
+  type?: string;
   amount: number;
   billDate: string;
   dueDate: string;
@@ -71,6 +107,14 @@ export interface Bill {
   remark?: string;
   createdAt: string;
   updatedAt: string;
+  tenantReactivated?: boolean;
+}
+
+export interface LifecycleCheckResult {
+  checkedAt: string;
+  trialExpired: number;
+  overdueMarked: number;
+  arrearsSuspended: number;
 }
 
 export interface PaginationParams {

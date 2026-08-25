@@ -7,6 +7,14 @@ export class CreateBillDto {
   @IsInt()
   tenantId: number;
 
+  @ApiPropertyOptional({
+    description: '账单类型：subscription 订阅费 / plan_change 套餐变更补差 / manual 手动账单',
+    example: 'subscription',
+  })
+  @IsOptional()
+  @IsIn(['subscription', 'plan_change', 'manual'])
+  type?: string;
+
   @ApiProperty({ description: '账单金额', example: 299 })
   @IsNotEmpty({ message: '账单金额不能为空' })
   @Min(0, { message: '账单金额不能小于0' })
