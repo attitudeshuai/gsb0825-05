@@ -116,8 +116,12 @@ function BillList() {
 
   const handleStatusChange = async (id: number, status: string) => {
     try {
-      await billApi.updateStatus(id, status);
-      Message.success('状态更新成功');
+      const result: any = await billApi.updateStatus(id, status);
+      if (status === 'paid' && result?.tenantReactivated) {
+        Message.success('账单已支付，租户欠费已结清并自动恢复启用');
+      } else {
+        Message.success('状态更新成功');
+      }
       fetchBills();
       fetchStats();
     } catch (error) {
@@ -192,6 +196,19 @@ function BillList() {
       title: '租户',
       dataIndex: 'tenant',
       render: (_: any, record: Bill) => record.tenant?.name || '-',
+    },
+    {
+      title: '类型',
+      dataIndex: 'type',
+      render: (val: string) => {
+        const map: Record<string, { text: string; color: string }> = {
+          subscription: { text: '订阅费', color: 'gray' },
+          plan_change: { text: '套餐补差', color: 'orange' },
+          manual: { text: '手动账单', color: 'purple' },
+        };
+        const config = map[val || 'subscription'] || map.subscription;
+        return <Tag color={config.color}>{config.text}</Tag>;
+      },
     },
     {
       title: '金额',

@@ -4,6 +4,7 @@ import {
   Table,
   Button,
   Input,
+  InputNumber,
   Tag,
   Modal,
   Form,
@@ -77,7 +78,6 @@ function TenantList() {
       contactEmail: tenant.contactEmail,
       contactPhone: tenant.contactPhone,
       address: tenant.address,
-      planId: tenant.planId,
       status: tenant.status,
     });
     setModalVisible(true);
@@ -121,9 +121,10 @@ function TenantList() {
 
   const getStatusTag = (status: string) => {
     const statusMap: Record<string, { className: string; text: string }> = {
-      active: { className: 'status-tag-active', text: '启用' },
+      active: { className: 'status-tag-active', text: '正式' },
+      trial: { className: 'status-tag-pending', text: '试用中' },
       inactive: { className: 'status-tag-inactive', text: '禁用' },
-      suspended: { className: 'status-tag-suspended', text: '暂停' },
+      suspended: { className: 'status-tag-suspended', text: '已停用' },
     };
     const config = statusMap[status] || statusMap.inactive;
     return (
@@ -158,7 +159,30 @@ function TenantList() {
     {
       title: '套餐',
       dataIndex: 'plan',
-      render: (_: any, record: Tenant) => record.plan?.name || '-',
+      render: (_: any, record: Tenant) => (
+        <div>
+          <div>{record.plan?.name || '-'}</div>
+          {record.status === 'trial' && record.trialEndsAt && (
+            <Tag color="orange" style={{ marginTop: 2, fontSize: 12 }}>
+              试用至 {dayjs(record.trialEndsAt).format('YYYY-MM-DD')}
+            </Tag>
+          )}
+          {record.status === 'suspended' && record.suspendReason && (
+            <Tag color="red" style={{ marginTop: 2, fontSize: 12 }}>
+              {record.suspendReason === 'trial_expired'
+                ? '试用到期停用'
+                : record.suspendReason === 'arrears'
+                ? '欠费停用'
+                : '手动停用'}
+            </Tag>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: '用户数',
+      render: (_: any, record: Tenant) =>
+        `${record._count?.tenantUsers ?? '-'} / ${record.plan?.maxUsers ?? '-'}`,
     },
     {
       title: '联系人',
@@ -177,9 +201,10 @@ function TenantList() {
           value={val}
           onChange={(newStatus) => handleStatusChange(record.id, newStatus)}
         >
-          <Option value="active">启用</Option>
+          <Option value="active">正式</Option>
+          <Option value="trial">试用中</Option>
+          <Option value="suspended">已停用</Option>
           <Option value="inactive">禁用</Option>
-          <Option value="suspended">暂停</Option>
         </Select>
       ),
     },
@@ -284,19 +309,44 @@ function TenantList() {
           >
             <Input placeholder="请输入租户编码" />
           </FormItem>
-          <FormItem
-            field="planId"
-            label="套餐"
-            rules={[{ required: true, message: '请选择套餐' }]}
-          >
-            <Select placeholder="请选择套餐">
-              {plans.map((plan) => (
-                <Option key={plan.id} value={plan.id}>
-                  {plan.name} - ¥{plan.price}/月
-                </Option>
-              ))}
-            </Select>
-          </FormItem>
+          {!editingTenant && (
+            <>
+              <FormItem
+                field="planId"
+                label="套餐"
+                rules={[{ required: true, message: '请选择套餐' }]}
+              >
+                <Select placeholder="请选择套餐">
+                  {plans.map((plan) => (
+                    <Option key={plan.id} value={plan.id}>
+                      {plan.name} - ¥{plan.price}/月（{plan.maxUsers} 用户 /{' '}
+                      {plan.maxStorage}GB）
+                    </Option>
+                  ))}
+                </Select>
+              </FormItem>
+              <FormItem
+                field="trialDays"
+                label="试用天数（0 或不填表示直接开通正式租户）"
+                initialValue={0}
+              >
+                <InputNumber
+                  style={{ width: '100%' }}
+                  min={0}
+                  max={365}
+                  placeholder="例如 30"
+                />
+              </FormItem>
+            </>
+          )}
+          {editingTenant && (
+            <FormItem label="套餐">
+              <span style={{ color: '#86909c' }}>
+                当前为「{editingTenant.plan?.name}」，切换套餐请到租户详情页点击「切换套餐」（
+                将生成变更记录与补差账单）
+              </span>
+            </FormItem>
+          )}
           <FormItem
             field="contactName"
             label="联系人姓名"
@@ -323,9 +373,10 @@ function TenantList() {
           {editingTenant && (
             <FormItem field="status" label="状态">
               <Select>
-                <Option value="active">启用</Option>
+                <Option value="active">正式</Option>
+                <Option value="trial">试用中</Option>
+                <Option value="suspended">已停用</Option>
                 <Option value="inactive">禁用</Option>
-                <Option value="suspended">暂停</Option>
               </Select>
             </FormItem>
           )}
