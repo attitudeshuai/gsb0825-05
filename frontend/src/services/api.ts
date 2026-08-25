@@ -5,6 +5,7 @@ import {
   User,
   Plan,
   Tenant,
+  TenantUser,
   Bill,
   PaginationParams,
   PaginationResult,
@@ -67,12 +68,56 @@ export const tenantApi = {
   updateStatus: (id: number, status: string): Promise<Tenant> =>
     api.patch(`/tenants/${id}/status`, { status }),
 
+  extendTrial: (id: number, trialEndsAt: string): Promise<Tenant> =>
+    api.post(`/tenants/${id}/trial/extend`, { trialEndsAt }),
+
+  convertToFormal: (id: number): Promise<Tenant> =>
+    api.post(`/tenants/${id}/trial/convert`),
+
+  changePlan: (id: number, planId: number, remark?: string): Promise<Tenant> =>
+    api.post(`/tenants/${id}/change-plan`, { planId, remark }),
+
+  updateStorage: (
+    id: number,
+    storageUsed: number,
+  ): Promise<Tenant & { storageWarning: string | null }> =>
+    api.patch(`/tenants/${id}/storage`, { storageUsed }),
+
   getStats: (): Promise<{
     total: number;
     active: number;
     inactive: number;
     newThisMonth: number;
   }> => api.get('/tenants/stats'),
+};
+
+export const tenantUserApi = {
+  getList: (tenantId: number): Promise<TenantUser[]> =>
+    api.get(`/tenants/${tenantId}/users`),
+
+  create: (tenantId: number, data: Partial<TenantUser> & { password: string }): Promise<TenantUser> =>
+    api.post(`/tenants/${tenantId}/users`, data),
+
+  update: (
+    tenantId: number,
+    userId: number,
+    data: Partial<TenantUser> & { password?: string },
+  ): Promise<TenantUser> =>
+    api.patch(`/tenants/${tenantId}/users/${userId}`, data),
+
+  updateStatus: (tenantId: number, userId: number, status: string): Promise<TenantUser> =>
+    api.patch(`/tenants/${tenantId}/users/${userId}/status`, { status }),
+
+  delete: (tenantId: number, userId: number): Promise<void> =>
+    api.delete(`/tenants/${tenantId}/users/${userId}`),
+};
+
+export const lifecycleApi = {
+  run: (): Promise<{
+    overdue: number;
+    trialExpired: number;
+    arrearsSuspended: number;
+  }> => api.post('/lifecycle/run'),
 };
 
 export const planApi = {

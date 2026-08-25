@@ -38,13 +38,15 @@ export class DashboardService {
 
     const overdueBills = await this.prisma.bill.count({
       where: {
-        status: 'pending',
-        dueDate: { lt: new Date() },
+        OR: [
+          { status: 'overdue' },
+          { status: 'pending', dueDate: { lt: new Date() } },
+        ],
       },
     });
 
     const pendingAmount = await this.prisma.bill.aggregate({
-      where: { status: 'pending' },
+      where: { status: { in: ['pending', 'overdue'] } },
       _sum: { amount: true },
     });
 

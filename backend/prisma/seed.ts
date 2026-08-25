@@ -102,6 +102,25 @@ async function main() {
 
   console.log('Created tenant:', demoTenant.name);
 
+  // 试用租户示例：30 天试用期
+  const trialTenant = await prisma.tenant.upsert({
+    where: { code: 'TRIAL001' },
+    update: {},
+    create: {
+      name: '试用租户',
+      code: 'TRIAL001',
+      contactName: '李四',
+      contactEmail: 'lisi@trial.com',
+      contactPhone: '13900139000',
+      address: '上海市浦东新区',
+      status: 'active',
+      planId: 1,
+      trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  console.log('Created trial tenant:', trialTenant.name);
+
   const tenantUsers = [
     {
       tenantId: demoTenant.id,

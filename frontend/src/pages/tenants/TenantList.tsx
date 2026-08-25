@@ -11,6 +11,7 @@ import {
   Message,
   Popconfirm,
   Space,
+  DatePicker,
 } from '@arco-design/web-react';
 import {
   IconPlus,
@@ -18,9 +19,10 @@ import {
   IconEdit,
   IconDelete,
   IconEye,
+  IconSync,
 } from '@arco-design/web-react/icon';
 import dayjs from 'dayjs';
-import { tenantApi, planApi } from '../../services/api';
+import { tenantApi, planApi, lifecycleApi } from '../../services/api';
 import { Tenant, Plan, PaginationResult } from '../../types';
 
 const FormItem = Form.Item;
@@ -79,6 +81,7 @@ function TenantList() {
       address: tenant.address,
       planId: tenant.planId,
       status: tenant.status,
+      trialEndsAt: tenant.trialEndsAt ? dayjs(tenant.trialEndsAt) : undefined,
     });
     setModalVisible(true);
   };
@@ -105,17 +108,35 @@ function TenantList() {
 
   const handleSubmit = async (values: any) => {
     try {
+      const payload = {
+        ...values,
+        trialEndsAt: values.trialEndsAt
+          ? dayjs(values.trialEndsAt).toISOString()
+          : undefined,
+      };
       if (editingTenant) {
-        await tenantApi.update(editingTenant.id, values);
+        await tenantApi.update(editingTenant.id, payload);
         Message.success('更新成功');
       } else {
-        await tenantApi.create(values);
+        await tenantApi.create(payload);
         Message.success('创建成功');
       }
       setModalVisible(false);
       fetchTenants();
     } catch (error) {
       console.error('Failed to submit:', error);
+    }
+  };
+
+  const handleRunLifecycle = async () => {
+    try {
+      const result = await lifecycleApi.run();
+      Message.success(
+        `检查完成：标记逾期 ${result.overdue} 张，试用到期停用 ${result.trialExpired} 个，欠费停用 ${result.arrearsSuspended} 个`,
+      );
+      fetchTenants();
+    } catch (error) {
+      console.error('Failed to run lifecycle:', error);
     }
   };
 
@@ -236,6 +257,9 @@ function TenantList() {
             />
           </div>
           <div className="table-toolbar-right">
+            <Button icon={<IconSync />} onClick={handleRunLifecycle}>
+              执行生命周期检查
+            </Button>
             <Button type="primary" icon={<IconPlus />} onClick={handleCreate}>
               新建租户
             </Button>
@@ -319,6 +343,9 @@ function TenantList() {
           </FormItem>
           <FormItem field="address" label="地址">
             <Input.TextArea placeholder="请输入地址" rows={3} />
+          </FormItem>
+          <FormItem field="trialEndsAt" label="试用到期时间（留空为正式租户）">
+            <DatePicker style={{ width: '100%' }} placeholder="请选择试用到期时间" />
           </FormItem>
           {editingTenant && (
             <FormItem field="status" label="状态">

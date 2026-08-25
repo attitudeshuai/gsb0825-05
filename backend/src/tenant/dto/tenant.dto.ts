@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsEmail, IsOptional, IsInt, IsIn } from 'class-validator';
+import { IsNotEmpty, IsString, IsEmail, IsOptional, IsInt, IsIn, IsDateString, Min } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateTenantDto {
@@ -41,6 +41,11 @@ export class CreateTenantDto {
   @IsOptional()
   @IsIn(['active', 'inactive', 'suspended'])
   status?: string;
+
+  @ApiPropertyOptional({ description: '试用到期时间', example: '2024-12-31T00:00:00Z' })
+  @IsOptional()
+  @IsDateString({}, { message: '试用到期时间格式不正确' })
+  trialEndsAt?: string;
 }
 
 export class UpdateTenantDto {
@@ -83,6 +88,11 @@ export class UpdateTenantDto {
   @IsOptional()
   @IsIn(['active', 'inactive', 'suspended'])
   status?: string;
+
+  @ApiPropertyOptional({ description: '试用到期时间', example: '2024-12-31T00:00:00Z' })
+  @IsOptional()
+  @IsDateString({}, { message: '试用到期时间格式不正确' })
+  trialEndsAt?: string;
 }
 
 export class UpdateStatusDto {
@@ -90,4 +100,31 @@ export class UpdateStatusDto {
   @IsNotEmpty({ message: '状态不能为空' })
   @IsIn(['active', 'inactive', 'suspended'])
   status: string;
+}
+
+export class ExtendTrialDto {
+  @ApiProperty({ description: '新的试用到期时间', example: '2024-12-31T00:00:00Z' })
+  @IsNotEmpty({ message: '试用到期时间不能为空' })
+  @IsDateString({}, { message: '试用到期时间格式不正确' })
+  trialEndsAt: string;
+}
+
+export class ChangePlanDto {
+  @ApiProperty({ description: '目标套餐ID', example: 2 })
+  @IsNotEmpty({ message: '目标套餐ID不能为空' })
+  @IsInt()
+  planId: number;
+
+  @ApiPropertyOptional({ description: '备注', example: '客户主动升级' })
+  @IsOptional()
+  @IsString()
+  remark?: string;
+}
+
+export class UpdateStorageDto {
+  @ApiProperty({ description: '存储用量(GB)', example: 20 })
+  @IsNotEmpty({ message: '存储用量不能为空' })
+  @IsInt()
+  @Min(0, { message: '存储用量不能小于0' })
+  storageUsed: number;
 }
