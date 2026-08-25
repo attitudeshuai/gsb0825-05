@@ -42,13 +42,16 @@ model Tenant {
   contactPhone String?
   address     String?
   status      String    @default("active")
+  suspendReason String?
   planId      Int
   plan        Plan      @relation(fields: [planId], references: [id])
   trialEndsAt DateTime?
+  storageUsed Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   bills       Bill[]
   tenantUsers TenantUser[]
+  planChanges PlanChangeRecord[]
 }
 
 model TenantUser {
@@ -72,9 +75,25 @@ model Bill {
   billDate    DateTime
   dueDate     DateTime
   status      String    @default("pending")
+  type        String    @default("subscription")
   paidAt      DateTime?
   items       Json
   remark      String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+model PlanChangeRecord {
+  id          Int       @id @default(autoincrement())
+  tenantId    Int
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  fromPlanId  Int
+  fromPlanName String
+  toPlanId    Int
+  toPlanName  String
+  changeType  String
+  priceDiff   Decimal   @db.Decimal(10, 2) @default(0)
+  billId      Int?
+  remark      String?
+  createdAt   DateTime  @default(now())
 }

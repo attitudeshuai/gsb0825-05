@@ -2,10 +2,14 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBillDto, UpdateBillDto } from './dto/bill.dto';
 import { PaginationDto, PaginationResultDto } from '../common/dto/pagination.dto';
+import { LifecycleService } from '../lifecycle/lifecycle.service';
 
 @Injectable()
 export class BillService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private lifecycle: LifecycleService,
+  ) {}
 
   async create(createBillDto: CreateBillDto) {
     const tenant = await this.prisma.tenant.findUnique({
@@ -122,21 +126,31 @@ export class BillService {
       updateData.paidAt = new Date();
     }
 
-    return this.prisma.bill.update({
+    const updated = await this.prisma.bill.update({
       where: { id },
       data: updateData,
       include: { tenant: true },
     });
+
+    // 账单结清后，若租户因欠费被停用且已无欠款，自动恢复激活，保持状态一致
+    if (status === 'paid') {
+      await this.lifecycle.reactivateIfCleared(bill.tenantId);
+    }
+
+    return updated;
   }
 
   async getStats() {
     const total = await this.prisma.bill.count();
     const pending = await this.prisma.bill.count({ where: { status: 'pending' } });
     const paid = await this.prisma.bill.count({ where: { status: 'paid' } });
+    // 逾期账单已由定时任务标记为 overdue，同时兼容尚未被标记的过期待支付账单
     const overdue = await this.prisma.bill.count({
       where: {
-        status: 'pending',
-        dueDate: { lt: new Date() },
+        OR: [
+          { status: 'overdue' },
+          { status: 'pending', dueDate: { lt: new Date() } },
+        ],
       },
     });
 
@@ -149,8 +163,9 @@ export class BillService {
       _sum: { amount: true },
     });
 
+    // 待收金额包含待支付与已逾期的未结清账单
     const pendingAmount = await this.prisma.bill.aggregate({
-      where: { status: 'pending' },
+      where: { status: { in: ['pending', 'overdue'] } },
       _sum: { amount: true },
     });
 

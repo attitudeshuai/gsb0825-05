@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { TenantService } from './tenant.service';
-import { CreateTenantDto, UpdateTenantDto, UpdateStatusDto } from './dto/tenant.dto';
+import { CreateTenantDto, UpdateTenantDto, UpdateStatusDto, ExtendTrialDto, ChangePlanDto, UpdateStorageDto } from './dto/tenant.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 
@@ -56,6 +56,30 @@ export class TenantController {
   @ApiOperation({ summary: '更新租户状态' })
   updateStatus(@Param('id') id: string, @Body() updateStatusDto: UpdateStatusDto) {
     return this.tenantService.updateStatus(+id, updateStatusDto.status);
+  }
+
+  @Post(':id/trial/extend')
+  @ApiOperation({ summary: '延长租户试用期' })
+  extendTrial(@Param('id') id: string, @Body() dto: ExtendTrialDto) {
+    return this.tenantService.extendTrial(+id, dto.trialEndsAt);
+  }
+
+  @Post(':id/trial/convert')
+  @ApiOperation({ summary: '租户试用转正' })
+  convertToFormal(@Param('id') id: string) {
+    return this.tenantService.convertToFormal(+id);
+  }
+
+  @Post(':id/change-plan')
+  @ApiOperation({ summary: '切换租户套餐' })
+  changePlan(@Param('id') id: string, @Body() dto: ChangePlanDto) {
+    return this.tenantService.changePlan(+id, dto);
+  }
+
+  @Patch(':id/storage')
+  @ApiOperation({ summary: '更新租户存储用量（按套餐 maxStorage 校验）' })
+  updateStorage(@Param('id') id: string, @Body() dto: UpdateStorageDto) {
+    return this.tenantService.updateStorage(+id, dto.storageUsed);
   }
 
   @Delete(':id')
