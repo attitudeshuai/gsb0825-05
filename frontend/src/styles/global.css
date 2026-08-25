@@ -1,0 +1,306 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  height: 100vh;
+  width: 100%;
+}
+
+.login-container {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.login-card {
+  width: 400px;
+  padding: 40px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+.login-title {
+  text-align: center;
+  margin-bottom: 32px;
+  color: #1d2129;
+}
+
+.login-title h1 {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.login-title p {
+  color: #86909c;
+  font-size: 14px;
+}
+
+.stat-card {
+  padding: 24px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-radius: 8px;
+  border: 1px solid #e5e6eb;
+}
+
+.stat-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin-bottom: 16px;
+}
+
+.stat-card-title {
+  color: #86909c;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.stat-card-value {
+  font-size: 28px;
+  font-weight: 600;
+  color: #1d2129;
+}
+
+.stat-card-trend {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.layout-container {
+  height: 100vh;
+}
+
+.layout-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  background: #fff;
+  border-bottom: 1px solid #e5e6eb;
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: 600;
+  color: #165dff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1d2129;
+}
+
+.page-content {
+  padding: 24px;
+  background: #f2f3f5;
+  min-height: calc(100vh - 60px);
+}
+
+.content-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.table-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 16px;
+}
+
+.table-toolbar-left {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.table-toolbar-right {
+  display: flex;
+  gap: 12px;
+}
+
+.status-tag-active {
+  background: #e8ffea;
+  color: #00b42a;
+}
+
+.status-tag-inactive {
+  background: #f2f3f5;
+  color: #4e5969;
+}
+
+.status-tag-suspended {
+  background: #fff7e8;
+  color: #ff7d00;
+}
+
+.status-tag-pending {
+  background: #fff3cd;
+  color: #ff7d00;
+}
+
+.status-tag-paid {
+  background: #e8ffea;
+  color: #00b42a;
+}
+
+.status-tag-overdue {
+  background: #ffece8;
+  color: #f53f3f;
+}
+
+.status-tag-cancelled {
+  background: #f2f3f5;
+  color: #4e5969;
+}
+
+.detail-section {
+  margin-bottom: 24px;
+}
+
+.detail-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1d2129;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e6eb;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.detail-item {
+  display: flex;
+}
+
+.detail-label {
+  width: 120px;
+  color: #86909c;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  color: #1d2129;
+  flex: 1;
+}
+
+.plan-card {
+  border: 2px solid #e5e6eb;
+  border-radius: 8px;
+  padding: 24px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.plan-card:hover {
+  border-color: #165dff;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(22, 93, 255, 0.15);
+}
+
+.plan-card.featured {
+  border-color: #165dff;
+  background: linear-gradient(135deg, #f0f5ff 0%, #e6edff 100%);
+}
+
+.plan-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1d2129;
+  margin-bottom: 8px;
+}
+
+.plan-price {
+  font-size: 36px;
+  font-weight: 700;
+  color: #165dff;
+  margin-bottom: 16px;
+}
+
+.plan-price-unit {
+  font-size: 14px;
+  color: #86909c;
+  font-weight: 400;
+}
+
+.plan-desc {
+  color: #86909c;
+  margin-bottom: 16px;
+  min-height: 40px;
+}
+
+.plan-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px 0;
+}
+
+.plan-features li {
+  padding: 8px 0;
+  color: #4e5969;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bill-amount {
+  font-size: 24px;
+  font-weight: 600;
+  color: #f53f3f;
+}
+
+.bill-amount.paid {
+  color: #00b42a;
+}
+
+.chart-container {
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f7f8fa;
+  border-radius: 8px;
+}
