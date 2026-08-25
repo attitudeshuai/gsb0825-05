@@ -18,6 +18,7 @@ import {
   IconEdit,
   IconDelete,
   IconEye,
+  IconClockCircle,
 } from '@arco-design/web-react/icon';
 import dayjs from 'dayjs';
 import { tenantApi, planApi } from '../../services/api';
@@ -78,7 +79,6 @@ function TenantList() {
       contactPhone: tenant.contactPhone,
       address: tenant.address,
       planId: tenant.planId,
-      status: tenant.status,
     });
     setModalVisible(true);
   };
@@ -95,11 +95,17 @@ function TenantList() {
 
   const handleStatusChange = async (id: number, status: string) => {
     try {
-      await tenantApi.updateStatus(id, status);
-      Message.success('状态更新成功');
+      if (status === 'active') {
+        await tenantApi.activate(id);
+        Message.success('租户已启用');
+      } else {
+        await tenantApi.updateStatus(id, status);
+        Message.success('状态更新成功');
+      }
       fetchTenants();
     } catch (error) {
       console.error('Failed to update status:', error);
+      fetchTenants();
     }
   };
 
@@ -158,7 +164,29 @@ function TenantList() {
     {
       title: '套餐',
       dataIndex: 'plan',
-      render: (_: any, record: Tenant) => record.plan?.name || '-',
+      render: (_: any, record: Tenant) => (
+        <Space>
+          <span>{record.plan?.name || '-'}</span>
+          {record.trialEndsAt && (
+            <Tag size="small" color="orange" icon={<IconClockCircle />}>
+              试用
+            </Tag>
+          )}
+        </Space>
+      ),
+    },
+    {
+      title: '用户数',
+      key: 'userCount',
+      render: (_: any, record: Tenant) => {
+        const active = record._count?.tenantUsers || 0;
+        const max = record.plan?.maxUsers || 0;
+        return (
+          <span style={{ color: active >= max ? '#f53f3f' : '#4e5969' }}>
+            {active}/{max}
+          </span>
+        );
+      },
     },
     {
       title: '联系人',
@@ -320,15 +348,6 @@ function TenantList() {
           <FormItem field="address" label="地址">
             <Input.TextArea placeholder="请输入地址" rows={3} />
           </FormItem>
-          {editingTenant && (
-            <FormItem field="status" label="状态">
-              <Select>
-                <Option value="active">启用</Option>
-                <Option value="inactive">禁用</Option>
-                <Option value="suspended">暂停</Option>
-              </Select>
-            </FormItem>
-          )}
         </Form>
       </Modal>
     </div>

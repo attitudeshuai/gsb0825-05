@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsEmail, IsOptional, IsInt, IsIn } from 'class-validator';
+import { IsNotEmpty, IsString, IsEmail, IsOptional, IsInt, IsIn, IsDateString } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateTenantDto {
@@ -36,6 +36,11 @@ export class CreateTenantDto {
   @IsNotEmpty({ message: '套餐ID不能为空' })
   @IsInt()
   planId: number;
+
+  @ApiPropertyOptional({ description: '试用到期时间', example: '2024-02-15T00:00:00Z' })
+  @IsOptional()
+  @IsDateString()
+  trialEndsAt?: string;
 
   @ApiPropertyOptional({ description: '状态', example: 'active' })
   @IsOptional()
@@ -78,16 +83,11 @@ export class UpdateTenantDto {
   @IsOptional()
   @IsInt()
   planId?: number;
-
-  @ApiPropertyOptional({ description: '状态', example: 'active' })
-  @IsOptional()
-  @IsIn(['active', 'inactive', 'suspended'])
-  status?: string;
 }
 
 export class UpdateStatusDto {
-  @ApiProperty({ description: '状态', example: 'active' })
+  @ApiProperty({ description: '状态（仅可设置为 inactive 或 suspended，启用请使用专用接口）', example: 'suspended' })
   @IsNotEmpty({ message: '状态不能为空' })
-  @IsIn(['active', 'inactive', 'suspended'])
+  @IsIn(['inactive', 'suspended'])
   status: string;
 }
