@@ -108,7 +108,10 @@ export class BillService {
   }
 
   async updateStatus(id: number, status: string) {
-    const bill = await this.prisma.bill.findUnique({ where: { id } });
+    const bill = await this.prisma.bill.findUnique({
+      where: { id },
+      include: { tenant: true },
+    });
     if (!bill) {
       throw new NotFoundException('账单不存在');
     }
@@ -117,16 +120,50 @@ export class BillService {
       throw new ConflictException('已支付的账单不能修改为其他状态');
     }
 
+    if (bill.status === 'cancelled' && status !== 'cancelled') {
+      throw new ConflictException('已取消的账单不能修改为其他状态');
+    }
+
     const updateData: any = { status };
     if (status === 'paid') {
       updateData.paidAt = new Date();
     }
 
-    return this.prisma.bill.update({
+    const updatedBill = await this.prisma.bill.update({
       where: { id },
       data: updateData,
       include: { tenant: true },
     });
+
+    if (status === 'paid' && bill.status === 'overdue') {
+      const remainingOverdue = await this.prisma.bill.count({
+        where: {
+          tenantId: bill.tenantId,
+          status: 'overdue',
+          id: { not: id },
+        },
+      });
+
+      if (remainingOverdue === 0 && bill.tenant.status === 'suspended') {
+        const suspendedReason = bill.tenant.suspendedReason || '';
+        if (suspendedReason.includes('欠费') || suspendedReason.includes('逾期')) {
+          const trialExpired =
+            bill.tenant.trialEndsAt && new Date() > bill.tenant.trialEndsAt;
+          if (!trialExpired) {
+            await this.prisma.tenant.update({
+              where: { id: bill.tenantId },
+              data: {
+                status: 'active',
+                suspendedAt: null,
+                suspendedReason: null,
+              },
+            });
+          }
+        }
+      }
+    }
+
+    return updatedBill;
   }
 
   async getStats() {
@@ -134,10 +171,7 @@ export class BillService {
     const pending = await this.prisma.bill.count({ where: { status: 'pending' } });
     const paid = await this.prisma.bill.count({ where: { status: 'paid' } });
     const overdue = await this.prisma.bill.count({
-      where: {
-        status: 'pending',
-        dueDate: { lt: new Date() },
-      },
+      where: { status: 'overdue' },
     });
 
     const totalAmount = await this.prisma.bill.aggregate({
@@ -150,7 +184,7 @@ export class BillService {
     });
 
     const pendingAmount = await this.prisma.bill.aggregate({
-      where: { status: 'pending' },
+      where: { status: { in: ['pending', 'overdue'] } },
       _sum: { amount: true },
     });
 
@@ -165,12 +199,18 @@ export class BillService {
   }
 
   async generateMonthlyBills() {
+    const now = new Date();
     const tenants = await this.prisma.tenant.findMany({
-      where: { status: 'active' },
+      where: {
+        status: 'active',
+        OR: [
+          { trialEndsAt: null },
+          { trialEndsAt: { lt: now } },
+        ],
+      },
       include: { plan: true },
     });
 
-    const now = new Date();
     const billDate = new Date(now.getFullYear(), now.getMonth(), 1);
     const dueDate = new Date(now.getFullYear(), now.getMonth() + 1, 10);
 
@@ -179,6 +219,7 @@ export class BillService {
       const existingBill = await this.prisma.bill.findFirst({
         where: {
           tenantId: tenant.id,
+          billType: 'subscription',
           billDate: {
             gte: new Date(now.getFullYear(), now.getMonth(), 1),
             lt: new Date(now.getFullYear(), now.getMonth() + 1, 1),
@@ -187,23 +228,55 @@ export class BillService {
       });
 
       if (!existingBill) {
-        const bill = await this.prisma.bill.create({
-          data: {
-            tenantId: tenant.id,
-            amount: tenant.plan.price,
-            billDate,
-            dueDate,
-            status: 'pending',
-            items: {
-              planFee: {
-                name: `${tenant.plan.name}月费`,
-                amount: tenant.plan.price.toNumber(),
-                quantity: 1,
+        const planPrice = Number(tenant.plan.price);
+        const creditBalance = Number(tenant.creditBalance || 0);
+        const deductedCredit = Math.min(creditBalance, planPrice);
+        const finalAmount = Math.round((planPrice - deductedCredit) * 100) / 100;
+
+        const bill = await this.prisma.$transaction(async (prisma) => {
+          if (deductedCredit > 0) {
+            await prisma.tenant.update({
+              where: { id: tenant.id },
+              data: {
+                creditBalance: {
+                  decrement: deductedCredit,
+                },
               },
+            });
+          }
+
+          return prisma.bill.create({
+            data: {
+              tenantId: tenant.id,
+              amount: finalAmount,
+              billDate,
+              dueDate,
+              status: finalAmount <= 0 ? 'paid' : 'pending',
+              paidAt: finalAmount <= 0 ? now : null,
+              billType: 'subscription',
+              items: {
+                planFee: {
+                  name: `${tenant.plan.name}月费`,
+                  amount: planPrice,
+                  quantity: 1,
+                },
+                ...(deductedCredit > 0
+                  ? {
+                      creditDeduction: {
+                        name: '账户余额抵扣',
+                        amount: -deductedCredit,
+                        quantity: 1,
+                      },
+                    }
+                  : {}),
+              },
+              remark:
+                deductedCredit > 0
+                  ? `${now.getFullYear()}年${now.getMonth() + 1}月账单（余额抵扣¥${deductedCredit.toFixed(2)}）`
+                  : `${now.getFullYear()}年${now.getMonth() + 1}月账单`,
             },
-            remark: `${now.getFullYear()}年${now.getMonth() + 1}月账单`,
-          },
-          include: { tenant: true },
+            include: { tenant: true },
+          });
         });
         results.push(bill);
       }

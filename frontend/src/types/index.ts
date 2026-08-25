@@ -42,10 +42,24 @@ export interface Tenant {
   planId: number;
   plan: Plan;
   trialEndsAt?: string;
+  storageUsed?: number;
+  storageUsedMb?: number;
+  maxStorageGb?: number;
+  maxStorageMb?: number;
+  creditBalance?: number;
+  suspendedAt?: string;
+  suspendedReason?: string;
   createdAt: string;
   updatedAt: string;
   tenantUsers?: TenantUser[];
   bills?: Bill[];
+  planChanges?: PlanChange[];
+  activeUserCount?: number;
+  overdueBills?: number;
+  isTrialExpired?: boolean;
+  _count?: {
+    tenantUsers?: number;
+  };
 }
 
 export interface TenantUser {
@@ -55,6 +69,21 @@ export interface TenantUser {
   email: string;
   role: string;
   status: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface PlanChange {
+  id: number;
+  tenantId: number;
+  fromPlanId: number;
+  toPlanId: number;
+  fromPlan: Plan;
+  toPlan: Plan;
+  changeType: string;
+  proratedAmount: number;
+  effectiveDate: string;
+  remark?: string;
   createdAt: string;
 }
 
@@ -69,6 +98,8 @@ export interface Bill {
   paidAt?: string;
   items: Record<string, any>;
   remark?: string;
+  billType?: string;
+  relatedChangeId?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -98,6 +129,15 @@ export interface BillStats {
     paid: number;
     pending: number;
   };
+}
+
+export interface TenantStats {
+  total: number;
+  active: number;
+  inactive: number;
+  suspended: number;
+  trial: number;
+  newThisMonth: number;
 }
 
 export interface DashboardStats {
