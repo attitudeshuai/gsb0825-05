@@ -11,6 +11,7 @@ import {
   Message,
   Popconfirm,
   Space,
+  InputNumber,
 } from '@arco-design/web-react';
 import {
   IconPlus,
@@ -77,8 +78,6 @@ function TenantList() {
       contactEmail: tenant.contactEmail,
       contactPhone: tenant.contactPhone,
       address: tenant.address,
-      planId: tenant.planId,
-      status: tenant.status,
     });
     setModalVisible(true);
   };
@@ -124,6 +123,7 @@ function TenantList() {
       active: { className: 'status-tag-active', text: '启用' },
       inactive: { className: 'status-tag-inactive', text: '禁用' },
       suspended: { className: 'status-tag-suspended', text: '暂停' },
+      trial: { className: 'status-tag-trial', text: '试用中' },
     };
     const config = statusMap[status] || statusMap.inactive;
     return (
@@ -171,17 +171,20 @@ function TenantList() {
     {
       title: '状态',
       dataIndex: 'status',
-      render: (val: string, record: Tenant) => (
-        <Select
-          style={{ width: 100 }}
-          value={val}
-          onChange={(newStatus) => handleStatusChange(record.id, newStatus)}
-        >
-          <Option value="active">启用</Option>
-          <Option value="inactive">禁用</Option>
-          <Option value="suspended">暂停</Option>
-        </Select>
-      ),
+      render: (val: string, record: Tenant) =>
+        val === 'trial' ? (
+          getStatusTag(val)
+        ) : (
+          <Select
+            style={{ width: 100 }}
+            value={val}
+            onChange={(newStatus) => handleStatusChange(record.id, newStatus)}
+          >
+            <Option value="active">启用</Option>
+            <Option value="inactive">禁用</Option>
+            <Option value="suspended">暂停</Option>
+          </Select>
+        ),
     },
     {
       title: '创建时间',
@@ -284,19 +287,34 @@ function TenantList() {
           >
             <Input placeholder="请输入租户编码" />
           </FormItem>
-          <FormItem
-            field="planId"
-            label="套餐"
-            rules={[{ required: true, message: '请选择套餐' }]}
-          >
-            <Select placeholder="请选择套餐">
-              {plans.map((plan) => (
-                <Option key={plan.id} value={plan.id}>
-                  {plan.name} - ¥{plan.price}/月
-                </Option>
-              ))}
-            </Select>
-          </FormItem>
+          {!editingTenant && (
+            <FormItem
+              field="planId"
+              label="套餐"
+              rules={[{ required: true, message: '请选择套餐' }]}
+            >
+              <Select placeholder="请选择套餐">
+                {plans.map((plan) => (
+                  <Option key={plan.id} value={plan.id}>
+                    {plan.name} - ¥{plan.price}/月
+                  </Option>
+                ))}
+              </Select>
+            </FormItem>
+          )}
+          {!editingTenant && (
+            <FormItem
+              field="trialDays"
+              label="试用天数（选填，填写后租户进入试用状态）"
+            >
+              <InputNumber
+                min={1}
+                max={365}
+                placeholder="如：14"
+                style={{ width: '100%' }}
+              />
+            </FormItem>
+          )}
           <FormItem
             field="contactName"
             label="联系人姓名"
@@ -320,15 +338,6 @@ function TenantList() {
           <FormItem field="address" label="地址">
             <Input.TextArea placeholder="请输入地址" rows={3} />
           </FormItem>
-          {editingTenant && (
-            <FormItem field="status" label="状态">
-              <Select>
-                <Option value="active">启用</Option>
-                <Option value="inactive">禁用</Option>
-                <Option value="suspended">暂停</Option>
-              </Select>
-            </FormItem>
-          )}
         </Form>
       </Modal>
     </div>

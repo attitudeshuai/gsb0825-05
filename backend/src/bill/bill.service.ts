@@ -122,11 +122,41 @@ export class BillService {
       updateData.paidAt = new Date();
     }
 
-    return this.prisma.bill.update({
+    const updated = await this.prisma.bill.update({
       where: { id },
       data: updateData,
       include: { tenant: true },
     });
+
+    // 状态一致性：欠费停用的租户在结清全部逾期账单后自动恢复启用
+    if (status === 'paid') {
+      await this.reactivateTenantIfArrearsCleared(bill.tenantId);
+    }
+
+    return updated;
+  }
+
+  private async reactivateTenantIfArrearsCleared(tenantId: number) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+    });
+    if (
+      !tenant ||
+      tenant.status !== 'suspended' ||
+      tenant.suspendReason !== 'arrears'
+    ) {
+      return;
+    }
+
+    const remainingOverdue = await this.prisma.bill.count({
+      where: { tenantId, status: 'overdue' },
+    });
+    if (remainingOverdue === 0) {
+      await this.prisma.tenant.update({
+        where: { id: tenantId },
+        data: { status: 'active', suspendReason: null },
+      });
+    }
   }
 
   async getStats() {
@@ -134,10 +164,7 @@ export class BillService {
     const pending = await this.prisma.bill.count({ where: { status: 'pending' } });
     const paid = await this.prisma.bill.count({ where: { status: 'paid' } });
     const overdue = await this.prisma.bill.count({
-      where: {
-        status: 'pending',
-        dueDate: { lt: new Date() },
-      },
+      where: { status: 'overdue' },
     });
 
     const totalAmount = await this.prisma.bill.aggregate({

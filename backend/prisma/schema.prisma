@@ -31,24 +31,29 @@ model Plan {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   tenants     Tenant[]
+  fromChanges PlanChangeRecord[] @relation("FromPlan")
+  toChanges   PlanChangeRecord[] @relation("ToPlan")
 }
 
 model Tenant {
-  id          Int       @id @default(autoincrement())
-  name        String    @unique
-  code        String    @unique
-  contactName String
-  contactEmail String
-  contactPhone String?
-  address     String?
-  status      String    @default("active")
-  planId      Int
-  plan        Plan      @relation(fields: [planId], references: [id])
-  trialEndsAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  bills       Bill[]
-  tenantUsers TenantUser[]
+  id            Int       @id @default(autoincrement())
+  name          String    @unique
+  code          String    @unique
+  contactName   String
+  contactEmail  String
+  contactPhone  String?
+  address       String?
+  status        String    @default("active")
+  suspendReason String?
+  storageUsed   Float     @default(0)
+  planId        Int
+  plan          Plan      @relation(fields: [planId], references: [id])
+  trialEndsAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  bills         Bill[]
+  tenantUsers   TenantUser[]
+  planChanges   PlanChangeRecord[]
 }
 
 model TenantUser {
@@ -77,4 +82,20 @@ model Bill {
   remark      String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+model PlanChangeRecord {
+  id             Int      @id @default(autoincrement())
+  tenantId       Int
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+  fromPlanId     Int
+  fromPlan       Plan     @relation("FromPlan", fields: [fromPlanId], references: [id])
+  toPlanId       Int
+  toPlan         Plan     @relation("ToPlan", fields: [toPlanId], references: [id])
+  changeType     String
+  priceDiff      Decimal  @db.Decimal(10, 2)
+  proratedAmount Decimal  @db.Decimal(10, 2) @default(0)
+  billId         Int?
+  remark         String?
+  createdAt      DateTime @default(now())
 }

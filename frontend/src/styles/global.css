@@ -173,6 +173,16 @@ body {
   color: #ff7d00;
 }
 
+.status-tag-trial {
+  background: #e8f3ff;
+  color: #165dff;
+}
+
+.status-tag-disabled {
+  background: #f2f3f5;
+  color: #86909c;
+}
+
 .status-tag-pending {
   background: #fff3cd;
   color: #ff7d00;

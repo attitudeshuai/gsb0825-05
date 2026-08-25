@@ -5,6 +5,8 @@ import {
   User,
   Plan,
   Tenant,
+  TenantUser,
+  PlanChangeRecord,
   Bill,
   PaginationParams,
   PaginationResult,
@@ -73,6 +75,58 @@ export const tenantApi = {
     inactive: number;
     newThisMonth: number;
   }> => api.get('/tenants/stats'),
+
+  extendTrial: (id: number, days: number): Promise<Tenant> =>
+    api.post(`/tenants/${id}/trial/extend`, { days }),
+
+  convertTrial: (id: number): Promise<{ tenant: Tenant; bill: Bill | null }> =>
+    api.post(`/tenants/${id}/trial/convert`),
+
+  changePlan: (
+    id: number,
+    planId: number
+  ): Promise<{ tenant: Tenant; record: PlanChangeRecord; bill: Bill | null }> =>
+    api.post(`/tenants/${id}/change-plan`, { planId }),
+
+  getPlanChanges: (id: number): Promise<PlanChangeRecord[]> =>
+    api.get(`/tenants/${id}/plan-changes`),
+
+  updateStorage: (
+    id: number,
+    data: { storageUsed?: number; delta?: number }
+  ): Promise<{
+    tenant: Tenant;
+    storageUsed: number;
+    maxStorage: number;
+    overLimit: boolean;
+    warning: string | null;
+  }> => api.post(`/tenants/${id}/storage`, data),
+};
+
+export const tenantUserApi = {
+  getList: (tenantId: number): Promise<TenantUser[]> =>
+    api.get(`/tenants/${tenantId}/users`),
+
+  create: (
+    tenantId: number,
+    data: {
+      username: string;
+      email: string;
+      password: string;
+      role?: string;
+      status?: string;
+    }
+  ): Promise<TenantUser> => api.post(`/tenants/${tenantId}/users`, data),
+
+  update: (
+    tenantId: number,
+    userId: number,
+    data: { email?: string; password?: string; role?: string; status?: string }
+  ): Promise<TenantUser> =>
+    api.patch(`/tenants/${tenantId}/users/${userId}`, data),
+
+  delete: (tenantId: number, userId: number): Promise<void> =>
+    api.delete(`/tenants/${tenantId}/users/${userId}`),
 };
 
 export const planApi = {

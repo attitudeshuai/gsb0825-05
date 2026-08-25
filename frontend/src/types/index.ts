@@ -39,6 +39,8 @@ export interface Tenant {
   contactPhone: string;
   address: string;
   status: string;
+  suspendReason?: string;
+  storageUsed: number;
   planId: number;
   plan: Plan;
   trialEndsAt?: string;
@@ -46,6 +48,7 @@ export interface Tenant {
   updatedAt: string;
   tenantUsers?: TenantUser[];
   bills?: Bill[];
+  activeUserCount?: number;
 }
 
 export interface TenantUser {
@@ -55,6 +58,21 @@ export interface TenantUser {
   email: string;
   role: string;
   status: string;
+  createdAt: string;
+}
+
+export interface PlanChangeRecord {
+  id: number;
+  tenantId: number;
+  fromPlanId: number;
+  fromPlan: Plan;
+  toPlanId: number;
+  toPlan: Plan;
+  changeType: string;
+  priceDiff: number;
+  proratedAmount: number;
+  billId?: number;
+  remark?: string;
   createdAt: string;
 }
 
